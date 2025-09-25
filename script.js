@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DailyDictation Playback Speed Controls with Buttons and Display
 // @namespace    http://tampermonkey.net/
-// @version      1.7
-// @description  Thêm phím tắt [ và ], các nút chọn tốc độ nhanh, và element hiển thị tốc độ, với vị trí ở dòng dưới player
+// @version      1.9
+// @description  Thêm phím tắt [ và ], các nút chọn tốc độ nhanh, element hiển thị tốc độ, auto reset về 1.0x khi audio src thay đổi, bắt đầu với 1.0x
 // @author       You
 // @match        https://dailydictation.com/*
 // @grant        none
@@ -12,10 +12,71 @@
   "use strict";
 
   const speeds = [0.25, 0.5, 0.6, 1.0];
-  let currentIndex = 2; // Bắt đầu từ 1.0
+  let currentIndex = 3; // Bắt đầu từ 1.0x per clarifications
   let audio = null;
   let speedDisplay = null;
   let buttonsContainer = null;
+
+  // Auto reset functionality
+  let resetOnNextAudio = false; // Flag indicating reset should occur on next audio
+  const DEFAULT_SPEED_INDEX = 3; // Index for 1.0x speed (default after reset)
+  let currentAudioSrc = null; // Track current audio src for change detection
+
+  // Hàm kích hoạt reset trigger khi user thay đổi speed
+  function activateResetTrigger() {
+    resetOnNextAudio = true;
+    console.log("Reset trigger activated - will reset to 1.0x on next audio");
+  }
+
+  // Hàm thực hiện reset speed về mặc định
+  function executeReset() {
+    currentIndex = DEFAULT_SPEED_INDEX;
+    resetOnNextAudio = false;
+    console.log(
+      `Auto reset executed - speed reset to ${speeds[DEFAULT_SPEED_INDEX]}x`,
+    );
+  }
+
+  // Hàm xử lý khi audio src thay đổi
+  function handleAudioSrcChange() {
+    if (audio && audio.src !== currentAudioSrc) {
+      console.log(
+        `Audio src changed from "${currentAudioSrc}" to "${audio.src}"`,
+      );
+      currentAudioSrc = audio.src;
+      executeReset();
+      updateDisplay();
+    }
+  }
+
+  // Hàm thiết lập monitoring cho audio src changes
+  function setupAudioSrcMonitoring() {
+    if (audio) {
+      // Initialize current src
+      currentAudioSrc = audio.src;
+      console.log(`Initial audio src: "${currentAudioSrc}"`);
+
+      // Create observer for src attribute changes
+      const audioSrcObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "src"
+          ) {
+            handleAudioSrcChange();
+          }
+        });
+      });
+
+      // Start observing src attribute changes
+      audioSrcObserver.observe(audio, {
+        attributes: true,
+        attributeFilter: ["src"],
+      });
+
+      console.log("Audio src monitoring setup complete");
+    }
+  }
 
   // Hàm cập nhật hiển thị và highlight button
   function updateDisplay() {
@@ -40,6 +101,11 @@
       // Chỉ setup một lần
       console.log("Audio đã tìm thấy, đang thiết lập controls.");
 
+      // Kiểm tra và thực hiện reset nếu cần
+      if (resetOnNextAudio) {
+        executeReset();
+      }
+
       // Tạo container cho buttons và display
       buttonsContainer = document.createElement("div");
       buttonsContainer.style.display = "block"; // Đảm bảo ở dòng mới
@@ -62,6 +128,7 @@
         button.addEventListener("click", () => {
           currentIndex = index;
           updateDisplay();
+          activateResetTrigger();
         });
         buttonsContainer.appendChild(button);
       });
@@ -109,11 +176,15 @@
         }
         if (updated) {
           updateDisplay();
+          activateResetTrigger();
         }
       });
       console.log(
         "Controls (buttons, display, phím tắt) đã được thiết lập ở dòng dưới player.",
       );
+
+      // Setup audio src monitoring for clarified requirements
+      setupAudioSrcMonitoring();
     }
   }
 
