@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DailyDictation Playback Speed Controls with Buttons and Display
 // @namespace    http://tampermonkey.net/
-// @version      1.6
-// @description  Thêm phím tắt [ và ] (thay thế Alt/Shift), các nút chọn tốc độ nhanh, và element hiển thị tốc độ, với vị trí ở dòng dưới player
+// @version      1.7
+// @description  Thêm phím tắt [ và ], các nút chọn tốc độ nhanh, và element hiển thị tốc độ, với vị trí ở dòng dưới player
 // @author       You
 // @match        https://dailydictation.com/*
 // @grant        none
@@ -51,7 +51,12 @@
         const button = document.createElement("button");
         button.innerText = `${speed}`;
         button.style.marginRight = "5px";
-        button.style.padding = "5px 10px";
+        button.style.width = "50px";
+        button.style.height = "32px";
+        button.style.boxSizing = "border-box";
+        button.style.padding = "0";
+        button.style.textAlign = "center";
+        button.style.lineHeight = "32px";
         button.style.border = "1px solid #ccc";
         button.style.cursor = "pointer";
         button.addEventListener("click", () => {
