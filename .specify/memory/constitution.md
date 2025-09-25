@@ -1,50 +1,59 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Daily Dictation Enhance Constitution
+
+<!--
+Sync Impact Report:
+- Version change: 1.0.0 → 1.0.1 (template compatibility clarification)
+- Modified sections: None (content unchanged)
+- Added clarifications: Template compatibility note for userscript projects
+- Templates requiring updates: ⚠ All templates incompatible with userscript architecture
+  - .specify/templates/plan-template.md: Assumes multi-file project structure
+  - .specify/templates/spec-template.md: Designed for complex feature specs
+  - .specify/templates/tasks-template.md: Assumes TDD workflow with test files
+- Follow-up TODOs: Templates need userscript-specific variants or project type detection
+-->
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Single-File Simplicity
+All functionality MUST remain within `script.js` as a self-contained userscript. No build tools, external dependencies, or multiple files permitted. The entire enhancement must be deliverable as a single JavaScript file compatible with Tampermonkey/Greasemonkey.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**Rationale**: Userscripts are designed for simplicity and easy distribution. Adding complexity defeats the purpose and creates barriers for users who just want to install and use the enhancement.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Defensive DOM Interaction
+All DOM manipulation MUST be defensive and non-destructive to the target website. Use MutationObserver for dynamic content detection, check for element existence before manipulation, and gracefully handle missing or changed elements without breaking the target site.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: The script runs on someone else's website and must not interfere with the site's core functionality. DailyDictation.com could change at any time, and our script must be resilient.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Progressive Enhancement
+The script MUST enhance existing functionality without replacing or breaking original audio controls. If the script fails or is disabled, the original website must remain fully functional. All enhancements should be additive only.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: Users should never be left worse off than before installing the script. The original site functionality is the baseline that must always work.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Minimal Performance Impact
+DOM operations must be efficient and minimal. Use event delegation where possible, avoid polling, and limit console logging in production. The script should have negligible impact on page load time and user experience.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: Userscripts run on every page load and poor performance reflects badly on the enhancement. Users will uninstall slow scripts.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Clear User Feedback
+All user interactions must provide immediate visual feedback. Speed changes should update button states, keyboard shortcuts should show current speed, and errors should be logged to console for debugging.
+
+**Rationale**: Users need to understand what's happening when they interact with the controls. Immediate feedback builds confidence in the tool's reliability.
+
+## Browser Compatibility
+
+The script MUST work in modern browsers (Chrome, Firefox, Safari, Edge) with Tampermonkey or equivalent userscript managers. Use ES6+ features that have broad support but avoid bleeding-edge JavaScript features that might not be universally supported.
+
+Testing should be performed in at least Chrome with Tampermonkey before any version releases.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+All changes must maintain compatibility with the target website (https://dailydictation.com). Constitution compliance is verified through manual testing on the target site.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Version increments follow userscript conventions:
+- MAJOR: Breaking changes to user interface or functionality
+- MINOR: New features or significant enhancements  
+- PATCH: Bug fixes and minor improvements
+
+**Template Compatibility**: The existing `.specify/templates/` are designed for complex multi-file projects and are **incompatible** with single-file userscript architecture. Future template usage would require userscript-specific variants that align with the Single-File Simplicity principle.
+
+**Version**: 1.0.1 | **Ratified**: 2025-09-25 | **Last Amended**: 2025-09-25

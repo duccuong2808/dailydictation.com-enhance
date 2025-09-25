@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         DailyDictation Playback Speed Controls with Buttons and Display
 // @namespace    http://tampermonkey.net/
-// @version      1.5
-// @description  Thêm phím tắt [ và ], các nút chọn tốc độ nhanh, và element hiển thị tốc độ, với vị trí ở dòng dưới player
+// @version      1.6
+// @description  Thêm phím tắt [ và ] (thay thế Alt/Shift), các nút chọn tốc độ nhanh, và element hiển thị tốc độ, với vị trí ở dòng dưới player
 // @author       You
 // @match        https://dailydictation.com/*
 // @grant        none
@@ -74,18 +74,32 @@
       // Cập nhật ban đầu
       updateDisplay();
 
-      // Thêm phím tắt (giữ nguyên)
+      // Thêm phím tắt bracket [ và ]
       document.addEventListener("keydown", (event) => {
         let updated = false;
-        if (event.key === "Alt") {
+        if (event.key === "[" && audio) {
+          event.preventDefault(); // Chặn việc gõ ký tự [
+          console.log(
+            `[${event.key}] key pressed - attempting to decrease speed`,
+          );
           if (currentIndex > 0) {
             currentIndex--;
             updated = true;
+            console.log(`Speed decreased to: ${speeds[currentIndex]}x`);
+          } else {
+            console.log("Already at minimum speed (0.25x)");
           }
-        } else if (event.key === "Shift") {
+        } else if (event.key === "]" && audio) {
+          event.preventDefault(); // Chặn việc gõ ký tự ]
+          console.log(
+            `[${event.key}] key pressed - attempting to increase speed`,
+          );
           if (currentIndex < speeds.length - 1) {
             currentIndex++;
             updated = true;
+            console.log(`Speed increased to: ${speeds[currentIndex]}x`);
+          } else {
+            console.log("Already at maximum speed (1.0x)");
           }
         }
         if (updated) {

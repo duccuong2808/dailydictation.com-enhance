@@ -42,3 +42,6 @@ This is a userscript that enhances DailyDictation.com by adding playback speed c
 **UI Placement**: Controls are inserted as new DOM elements below the audio player using `audio.parentNode.appendChild()`.
 
 **State Management**: Simple index-based system tracking current speed from predefined array `[0.25, 0.5, 0.6, 1.0]`.
+
+## Note
+- Always answer and response by Vietnamese
