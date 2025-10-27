@@ -43,5 +43,5 @@ This is a userscript that enhances DailyDictation.com by adding playback speed c
 
 **State Management**: Simple index-based system tracking current speed from predefined array `[0.25, 0.5, 0.6, 1.0]`.
 
-## Note
+## Important
 - Always answer and response by Vietnamese
