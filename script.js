@@ -1,215 +1,198 @@
 // ==UserScript==
-// @name         DailyDictation Playback Speed Controls with Buttons and Display
+// @name         DailyDictation Speed Control - Fixed
 // @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  Thêm phím tắt [ và ], các nút chọn tốc độ nhanh, element hiển thị tốc độ, auto reset về 1.0x khi audio src thay đổi, bắt đầu với 1.0x
-// @author       You
+// @version      3.3
+// @description  Fixed version - ensure buttons are visible
+// @author       Optimized
 // @match        https://dailydictation.com/*
 // @grant        none
 // ==/UserScript==
 
-(function () {
+(() => {
   "use strict";
 
-  const speeds = [0.25, 0.5, 0.6, 1.0];
-  let currentIndex = 3; // Bắt đầu từ 1.0x per clarifications
-  let audio = null;
-  let speedDisplay = null;
-  let buttonsContainer = null;
+  const SPEEDS = [0.25, 0.5, 0.6, 1.0];
+  let currentIndex = 3,
+    audio,
+    buttons = [],
+    lastSrc,
+    resetNext = false,
+    initialized = false;
 
-  // Auto reset functionality
-  let resetOnNextAudio = false; // Flag indicating reset should occur on next audio
-  const DEFAULT_SPEED_INDEX = 3; // Index for 1.0x speed (default after reset)
-  let currentAudioSrc = null; // Track current audio src for change detection
+  // Inject styles
+  const style = document.createElement("style");
+  style.textContent = `
+    .dd-speed-controls {
+      display: flex !important;
+      gap: 5px;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .dd-speed-btn {
+      width: 50px !important;
+      height: 32px !important;
+      border: 1px solid #ccc !important;
+      cursor: pointer !important;
+      background: #f8f9fa !important;
+      color: #000 !important;
+      border-radius: 3px;
+      font-size: 14px;
+      transition: all 0.2s !important;
+    }
+    .dd-speed-btn.active {
+      background: #007bff !important;
+      color: #fff !important;
+      border-color: #007bff !important;
+    }
+    .dd-speed-btn:hover {
+      opacity: 0.8 !important;
+      transform: scale(1.05);
+    }
+    .dd-speed-label {
+      margin-left: 10px;
+      font-weight: bold;
+      color: #007bff;
+      line-height: 32px;
+    }
+  `;
+  document.head.appendChild(style);
 
-  // Hàm kích hoạt reset trigger khi user thay đổi speed
-  function activateResetTrigger() {
-    resetOnNextAudio = true;
-    console.log("Reset trigger activated - will reset to 1.0x on next audio");
-  }
-
-  // Hàm thực hiện reset speed về mặc định
-  function executeReset() {
-    currentIndex = DEFAULT_SPEED_INDEX;
-    resetOnNextAudio = false;
-    console.log(
-      `Auto reset executed - speed reset to ${speeds[DEFAULT_SPEED_INDEX]}x`,
+  const updateSpeed = () => {
+    if (!audio) return;
+    audio.playbackRate = SPEEDS[currentIndex];
+    buttons.forEach((btn, i) =>
+      btn.classList.toggle("active", i === currentIndex),
     );
-  }
+    const label = document.querySelector(".dd-speed-label");
+  };
 
-  // Hàm xử lý khi audio src thay đổi
-  function handleAudioSrcChange() {
-    if (audio && audio.src !== currentAudioSrc) {
-      console.log(
-        `Audio src changed from "${currentAudioSrc}" to "${audio.src}"`,
-      );
-      currentAudioSrc = audio.src;
-      executeReset();
-      updateDisplay();
-    }
-  }
+  const setSpeed = (index) => {
+    currentIndex = index;
+    resetNext = true;
+    updateSpeed();
+  };
 
-  // Hàm thiết lập monitoring cho audio src changes
-  function setupAudioSrcMonitoring() {
-    if (audio) {
-      // Initialize current src
-      currentAudioSrc = audio.src;
-      console.log(`Initial audio src: "${currentAudioSrc}"`);
+  const setupControls = () => {
+    if (!audio || initialized) return;
+    initialized = true;
 
-      // Create observer for src attribute changes
-      const audioSrcObserver = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (
-            mutation.type === "attributes" &&
-            mutation.attributeName === "src"
-          ) {
-            handleAudioSrcChange();
-          }
-        });
-      });
+    console.log("[DailyDict] Setting up controls...");
+    console.log("[DailyDict] Audio element:", audio);
+    console.log("[DailyDict] Audio parent:", audio.parentNode);
 
-      // Start observing src attribute changes
-      audioSrcObserver.observe(audio, {
-        attributes: true,
-        attributeFilter: ["src"],
-      });
+    // Create container
+    const container = document.createElement("div");
+    container.className = "dd-speed-controls";
 
-      console.log("Audio src monitoring setup complete");
-    }
-  }
-
-  // Hàm cập nhật hiển thị và highlight button
-  function updateDisplay() {
-    if (buttonsContainer) {
-      Array.from(buttonsContainer.children).forEach((btn, idx) => {
-        if (btn.tagName === "BUTTON") {
-          // Chỉ highlight buttons
-          btn.style.backgroundColor = idx === currentIndex ? "#007bff" : "#ccc";
-          btn.style.color = idx === currentIndex ? "#fff" : "#000";
-        }
-      });
-    }
-    if (audio) {
-      audio.playbackRate = speeds[currentIndex];
-    }
-    console.log(`Tốc độ mới: ${speeds[currentIndex]}x`);
-  }
-
-  // Hàm thiết lập khi audio sẵn sàng
-  function setupControls() {
-    if (audio && !buttonsContainer) {
-      // Chỉ setup một lần
-      console.log("Audio đã tìm thấy, đang thiết lập controls.");
-
-      // Kiểm tra và thực hiện reset nếu cần
-      if (resetOnNextAudio) {
-        executeReset();
-      }
-
-      // Tạo container cho buttons và display
-      buttonsContainer = document.createElement("div");
-      buttonsContainer.style.display = "block"; // Đảm bảo ở dòng mới
-      buttonsContainer.style.marginTop = "20px"; // Khoảng cách phía trên để xuống dòng dưới player
-      buttonsContainer.style.alignItems = "center";
-
-      // Tạo buttons cho từng tốc độ
-      speeds.forEach((speed, index) => {
-        const button = document.createElement("button");
-        button.innerText = `${speed}`;
-        button.style.marginRight = "5px";
-        button.style.width = "50px";
-        button.style.height = "32px";
-        button.style.boxSizing = "border-box";
-        button.style.padding = "0";
-        button.style.textAlign = "center";
-        button.style.lineHeight = "32px";
-        button.style.border = "1px solid #ccc";
-        button.style.cursor = "pointer";
-        button.addEventListener("click", () => {
-          currentIndex = index;
-          updateDisplay();
-          activateResetTrigger();
-        });
-        buttonsContainer.appendChild(button);
-      });
-
-      // Tạo element hiển thị tốc độ (tùy chọn, bên cạnh buttons)
-      speedDisplay = document.createElement("span");
-      speedDisplay.style.marginLeft = "10px";
-      speedDisplay.style.fontWeight = "bold";
-      speedDisplay.style.color = "#007bff";
-      buttonsContainer.appendChild(speedDisplay);
-
-      // Chèn container vào cuối parent của audio (để ở dưới player)
-      audio.parentNode.appendChild(buttonsContainer);
-
-      // Cập nhật ban đầu
-      updateDisplay();
-
-      // Thêm phím tắt bracket [ và ]
-      document.addEventListener("keydown", (event) => {
-        let updated = false;
-        if (event.key === "[" && audio) {
-          event.preventDefault(); // Chặn việc gõ ký tự [
-          console.log(
-            `[${event.key}] key pressed - attempting to decrease speed`,
-          );
-          if (currentIndex > 0) {
-            currentIndex--;
-            updated = true;
-            console.log(`Speed decreased to: ${speeds[currentIndex]}x`);
-          } else {
-            console.log("Already at minimum speed (0.25x)");
-          }
-        } else if (event.key === "]" && audio) {
-          event.preventDefault(); // Chặn việc gõ ký tự ]
-          console.log(
-            `[${event.key}] key pressed - attempting to increase speed`,
-          );
-          if (currentIndex < speeds.length - 1) {
-            currentIndex++;
-            updated = true;
-            console.log(`Speed increased to: ${speeds[currentIndex]}x`);
-          } else {
-            console.log("Already at maximum speed (1.0x)");
-          }
-        }
-        if (updated) {
-          updateDisplay();
-          activateResetTrigger();
-        }
-      });
-      console.log(
-        "Controls (buttons, display, phím tắt) đã được thiết lập ở dòng dưới player.",
-      );
-
-      // Setup audio src monitoring for clarified requirements
-      setupAudioSrcMonitoring();
-    }
-  }
-
-  // MutationObserver để theo dõi DOM
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === "childList") {
-        audio = document.querySelector("audio");
-        if (audio) {
-          setupControls();
-          observer.disconnect();
-        }
-      }
+    // Create buttons
+    SPEEDS.forEach((speed, i) => {
+      const btn = document.createElement("button");
+      btn.className = "dd-speed-btn";
+      btn.textContent = speed;
+      btn.onclick = () => setSpeed(i);
+      buttons.push(btn);
+      container.appendChild(btn);
     });
-  });
 
-  observer.observe(document.body, { childList: true, subtree: true });
-  console.log("MutationObserver đang chờ audio element.");
+    // Add speed label
+    const label = document.createElement("span");
+    label.className = "dd-speed-label";
+    container.appendChild(label);
 
-  // Kiểm tra ngay nếu đã load
-  window.addEventListener("load", () => {
+    // Try multiple insertion points
+    const insertionPoints = [
+      audio.parentNode, // Direct parent
+      audio.closest("div"), // Closest div
+      audio.parentNode.parentNode, // Grandparent
+      document.querySelector(".audio-container"), // Common class name
+      document.querySelector("#audio-wrapper"), // Common ID
+      document.body, // Fallback to body
+    ].filter(Boolean);
+
+    let inserted = false;
+    for (const parent of insertionPoints) {
+      try {
+        // Try inserting after audio element or at the end
+        const audioInParent = parent.contains(audio);
+        if (audioInParent) {
+          // Insert after audio element
+          audio.parentNode.insertBefore(container, audio.nextSibling);
+        } else {
+          // Append to parent
+          parent.appendChild(container);
+        }
+        inserted = true;
+        console.log("[DailyDict] Controls inserted into:", parent);
+        break;
+      } catch (e) {
+        console.log("[DailyDict] Failed to insert into:", parent, e);
+      }
+    }
+
+    if (!inserted) {
+      console.error("[DailyDict] Could not insert controls!");
+      return;
+    }
+
+    lastSrc = audio.src;
+    updateSpeed();
+
+    // Monitor src changes
+    new MutationObserver(() => {
+      if (audio.src !== lastSrc) {
+        lastSrc = audio.src;
+        if (resetNext) {
+          currentIndex = 3;
+          resetNext = false;
+          updateSpeed();
+        }
+      }
+    }).observe(audio, { attributes: true, attributeFilter: ["src"] });
+
+    console.log("[DailyDict] Controls initialized successfully!");
+  };
+
+  const findAudio = () => {
     audio = document.querySelector("audio");
     if (audio) {
+      console.log("[DailyDict] Audio found!");
       setupControls();
-      observer.disconnect();
+      return true;
+    }
+    return false;
+  };
+
+  // Keyboard handler
+  document.addEventListener("keydown", (e) => {
+    if (!audio) return;
+
+    if (e.key === "[" || e.key === "]") {
+      e.preventDefault();
+      if (e.key === "[" && currentIndex > 0) setSpeed(currentIndex - 1);
+      if (e.key === "]" && currentIndex < SPEEDS.length - 1)
+        setSpeed(currentIndex + 1);
     }
   });
+
+  // Initialize
+  const init = () => {
+    console.log("[DailyDict] Initializing...");
+    if (findAudio()) return;
+
+    // Wait for audio element
+    const observer = new MutationObserver(() => {
+      if (findAudio()) {
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  };
+
+  // Start when ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    // Add small delay to ensure page is fully rendered
+    setTimeout(init, 500);
+  }
 })();
