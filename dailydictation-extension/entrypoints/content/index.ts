@@ -2,7 +2,6 @@ import { AudioController } from '../../components/audio-controller';
 import { UIBuilder } from '../../components/ui-builder';
 import { KeyboardHandler } from '../../components/keyboard-handler';
 import { LOG_PREFIX } from '../../utils/constants';
-import './style.css';
 
 export default defineContentScript({
   matches: ['*://dailydictation.com/*', '*://*.dailydictation.com/*'],
@@ -10,6 +9,68 @@ export default defineContentScript({
 
   main() {
     console.log(`${LOG_PREFIX} Initializing...`);
+
+    // Inject CSS directly into DOM (Firefox compatibility fix)
+    const injectCSS = (): void => {
+      const styleId = 'dd-speed-controls-styles';
+
+      // Check if already injected
+      if (document.getElementById(styleId)) {
+        return;
+      }
+
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        /* Speed controls container */
+        .dd-speed-controls {
+          display: flex !important;
+          gap: 5px;
+          padding: 10px;
+          border-radius: 5px;
+        }
+
+        /* Speed control buttons */
+        .dd-speed-btn {
+          width: 50px !important;
+          height: 32px !important;
+          border: 1px solid #ccc !important;
+          cursor: pointer !important;
+          background: #f8f9fa !important;
+          color: #000 !important;
+          border-radius: 3px;
+          font-size: 14px;
+          transition: all 0.2s !important;
+        }
+
+        /* Active button state */
+        .dd-speed-btn.active {
+          background: #007bff !important;
+          color: #fff !important;
+          border-color: #007bff !important;
+        }
+
+        /* Button hover state */
+        .dd-speed-btn:hover {
+          opacity: 0.8 !important;
+          transform: scale(1.05);
+        }
+
+        /* Speed display label */
+        .dd-speed-label {
+          margin-left: 10px;
+          font-weight: bold;
+          color: #007bff;
+          line-height: 32px;
+        }
+      `;
+
+      document.head.appendChild(style);
+      console.log(`${LOG_PREFIX} CSS injected`);
+    };
+
+    // Inject CSS first
+    injectCSS();
 
     let initialized = false;
 

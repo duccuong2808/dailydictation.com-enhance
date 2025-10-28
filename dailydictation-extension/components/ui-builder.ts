@@ -73,7 +73,12 @@ export class UIBuilder implements IUIBuilder {
     const button = document.createElement('button');
     button.className = CSS_CLASSES.button;
     button.textContent = `${speed}x`;
-    button.onclick = () => this.controller.setSpeed(index);
+
+    // Use addEventListener instead of onclick for Firefox compatibility
+    button.addEventListener('click', () => {
+      this.controller.setSpeed(index);
+    });
+
     return button;
   }
 
