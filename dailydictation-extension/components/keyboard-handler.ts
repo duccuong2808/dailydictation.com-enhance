@@ -23,9 +23,15 @@ export class KeyboardHandler implements IKeyboardHandler {
 
   /**
    * Initialize keyboard event listeners
+   * @param ctx - WXT ContentScriptContext for Firefox compatibility
    */
-  init(): void {
-    document.addEventListener('keydown', this.handleKeyDown);
+  init(ctx?: any): void {
+    // Use ctx.addEventListener for Firefox compatibility if available
+    if (ctx && ctx.addEventListener) {
+      ctx.addEventListener(document, 'keydown', this.handleKeyDown);
+    } else {
+      document.addEventListener('keydown', this.handleKeyDown);
+    }
   }
 
   /**

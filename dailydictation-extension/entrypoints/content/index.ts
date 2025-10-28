@@ -7,7 +7,7 @@ export default defineContentScript({
   matches: ['*://dailydictation.com/*', '*://*.dailydictation.com/*'],
   runAt: 'document_idle',
 
-  main() {
+  main(ctx) {
     console.log(`${LOG_PREFIX} Initializing...`);
 
     // Inject CSS directly into DOM (Firefox compatibility fix)
@@ -103,7 +103,7 @@ export default defineContentScript({
 
       // Setup keyboard shortcuts
       const keyboardHandler = new KeyboardHandler(controller);
-      keyboardHandler.init();
+      keyboardHandler.init(ctx); // Pass ctx for Firefox compatibility
 
       console.log(`${LOG_PREFIX} Controls initialized successfully!`);
     };

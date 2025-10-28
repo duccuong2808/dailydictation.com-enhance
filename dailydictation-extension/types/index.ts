@@ -31,7 +31,7 @@ export interface IUIBuilder {
  * Keyboard handler interface
  */
 export interface IKeyboardHandler {
-  init(): void;
+  init(ctx?: any): void; // ctx is WXT ContentScriptContext for Firefox compatibility
   destroy(): void;
 }
 
