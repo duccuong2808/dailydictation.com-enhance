@@ -8,15 +8,31 @@ export class KeyboardHandler implements IKeyboardHandler {
 
   constructor(controller: AudioController) {
     this.controller = controller;
+    this.handleKeyDown = this.createHandler();
+  }
 
-    // Bind handler to preserve 'this' context
-    this.handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === KEYBOARD_SHORTCUTS.decrease) {
+  /**
+   * Update the controller reference (when audio changes)
+   */
+  updateController(controller: AudioController): void {
+    this.controller = controller;
+  }
+
+  /**
+   * Create the keydown handler
+   */
+  private createHandler(): (e: KeyboardEvent) => void {
+    return (e: KeyboardEvent) => {
+      console.log('[DailyDict] Key event - code:', e.code);
+      if (e.code === KEYBOARD_SHORTCUTS.decrease) {
         e.preventDefault();
         this.controller.decreaseSpeed();
-      } else if (e.key === KEYBOARD_SHORTCUTS.increase) {
+      } else if (e.code === KEYBOARD_SHORTCUTS.increase) {
         e.preventDefault();
         this.controller.increaseSpeed();
+      } else if (e.code === KEYBOARD_SHORTCUTS.reset) {
+        e.preventDefault();
+        this.controller.resetSpeed();
       }
     };
   }
@@ -26,7 +42,6 @@ export class KeyboardHandler implements IKeyboardHandler {
    * @param ctx - WXT ContentScriptContext for Firefox compatibility
    */
   init(ctx?: any): void {
-    // Use ctx.addEventListener for Firefox compatibility if available
     if (ctx && ctx.addEventListener) {
       ctx.addEventListener(document, 'keydown', this.handleKeyDown);
     } else {

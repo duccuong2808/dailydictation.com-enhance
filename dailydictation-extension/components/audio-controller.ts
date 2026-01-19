@@ -18,7 +18,8 @@ export class AudioController implements IAudioController {
     this.onSpeedChangeCallbacks = [];
 
     this.initializeSrcMonitoring();
-    this.applySpeed();
+    // Don't apply speed immediately - wait for user interaction
+    // This avoids triggering autoplay policy restrictions
   }
 
   /**

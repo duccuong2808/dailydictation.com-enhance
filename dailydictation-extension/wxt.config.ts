@@ -10,6 +10,18 @@ export default defineConfig({
       '*://dailydictation.com/*',
       '*://*.dailydictation.com/*',
     ],
+    browser_specific_settings: {
+      gecko: {
+        id: 'dailydictation-speed-control@example.com',
+        strict_min_version: '140.0',
+        data_collection_permissions: {
+          required: ['none'],
+        },
+      },
+      gecko_android: {
+        strict_min_version: '142.0',
+      },
+    } as Record<string, unknown>,
   },
   // Optimize build
   zip: {

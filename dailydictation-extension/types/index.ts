@@ -32,6 +32,7 @@ export interface IUIBuilder {
  */
 export interface IKeyboardHandler {
   init(ctx?: any): void; // ctx is WXT ContentScriptContext for Firefox compatibility
+  updateController(controller: IAudioController): void;
   destroy(): void;
 }
 

@@ -19,11 +19,12 @@ export const CSS_CLASSES = {
 } as const;
 
 /**
- * Keyboard shortcuts
+ * Keyboard shortcuts (using e.code for consistency)
  */
 export const KEYBOARD_SHORTCUTS = {
-  decrease: '[',
-  increase: ']',
+  decrease: 'BracketLeft',
+  increase: 'BracketRight',
+  reset: 'Backslash',
 } as const;
 
 /**

@@ -1,15 +1,12 @@
 import { AudioController } from '../../components/audio-controller';
 import { UIBuilder } from '../../components/ui-builder';
 import { KeyboardHandler } from '../../components/keyboard-handler';
-import { LOG_PREFIX } from '../../utils/constants';
 
 export default defineContentScript({
   matches: ['*://dailydictation.com/*', '*://*.dailydictation.com/*'],
   runAt: 'document_idle',
 
   main(ctx) {
-    console.log(`${LOG_PREFIX} Initializing...`);
-
     // Inject CSS directly into DOM (Firefox compatibility fix)
     const injectCSS = (): void => {
       const styleId = 'dd-speed-controls-styles';
@@ -66,78 +63,164 @@ export default defineContentScript({
       `;
 
       document.head.appendChild(style);
-      console.log(`${LOG_PREFIX} CSS injected`);
     };
 
     // Inject CSS first
     injectCSS();
 
-    let initialized = false;
+    // Track current audio and controls
+    let currentAudio: HTMLAudioElement | null = null;
+    let currentController: AudioController | null = null;
+    let currentUIBuilder: UIBuilder | null = null;
+    let currentKeyboardHandler: KeyboardHandler | null = null;
+
+    /**
+     * Check if controls are correctly positioned next to audio
+     */
+    const isControlsValid = (): boolean => {
+      if (!currentAudio || !currentUIBuilder) return false;
+
+      const controls = document.querySelector('.dd-speed-controls');
+      if (!controls) return false;
+
+      // Check if controls and audio share the same visible parent
+      const audioParent = currentAudio.parentElement;
+      const controlsParent = controls.parentElement;
+
+      // Controls should be sibling of audio or in same parent
+      return audioParent === controlsParent;
+    };
+
+    /**
+     * Remove existing controls from DOM
+     */
+    const removeControls = (): void => {
+      const existingControls = document.querySelector('.dd-speed-controls');
+      if (existingControls) {
+        existingControls.remove();
+      }
+    };
 
     /**
      * Initialize controls for an audio element
      */
     const initializeAudioControls = (audio: HTMLAudioElement): void => {
-      if (initialized) {
-        console.log(`${LOG_PREFIX} Already initialized, skipping`);
+      // If same audio and controls are valid, skip
+      if (currentAudio === audio && isControlsValid()) {
         return;
       }
 
-      console.log(`${LOG_PREFIX} Audio found!`, audio);
-      initialized = true;
+      // Remove old controls if any
+      removeControls();
+
+      // Update current audio reference
+      currentAudio = audio;
 
       // Create controller
-      const controller = new AudioController(audio);
+      currentController = new AudioController(audio);
 
       // Create UI
-      const uiBuilder = new UIBuilder(controller);
-      const controls = uiBuilder.createSpeedControls();
+      currentUIBuilder = new UIBuilder(currentController);
+      currentUIBuilder.createSpeedControls();
 
       // Insert controls into DOM
-      const inserted = uiBuilder.insertIntoDOM(audio);
+      const inserted = currentUIBuilder.insertIntoDOM(audio);
       if (!inserted) {
-        console.error(`${LOG_PREFIX} Failed to insert controls`);
-        initialized = false;
+        currentAudio = null;
         return;
       }
 
-      // Setup keyboard shortcuts
-      const keyboardHandler = new KeyboardHandler(controller);
-      keyboardHandler.init(ctx); // Pass ctx for Firefox compatibility
-
-      console.log(`${LOG_PREFIX} Controls initialized successfully!`);
-    };
-
-    /**
-     * Find and initialize audio element
-     */
-    const findAudio = (): boolean => {
-      const audio = document.querySelector('audio') as HTMLAudioElement | null;
-      if (audio) {
-        initializeAudioControls(audio);
-        return true;
+      // Setup keyboard shortcuts (only once, but update controller reference)
+      if (!currentKeyboardHandler) {
+        currentKeyboardHandler = new KeyboardHandler(currentController);
+        currentKeyboardHandler.init(ctx);
+      } else {
+        // Update controller reference when audio changes
+        currentKeyboardHandler.updateController(currentController);
       }
-      return false;
     };
 
     /**
-     * Start initialization
+     * Find visible audio element (one with src or visible in DOM)
+     */
+    const findVisibleAudio = (): HTMLAudioElement | null => {
+      const audios = document.querySelectorAll('audio');
+      for (const audio of audios) {
+        // Prefer audio with src (actually playing/loaded)
+        if (audio.src || audio.querySelector('source')) {
+          // Check if audio is in visible part of DOM
+          const parent = audio.parentElement;
+          if (parent && parent.offsetHeight > 0) {
+            return audio;
+          }
+        }
+      }
+      // Fallback to first audio
+      return audios[0] as HTMLAudioElement || null;
+    };
+
+    /**
+     * Check and update controls position
+     */
+    const checkAndUpdateControls = (): void => {
+      const audio = findVisibleAudio();
+
+      if (!audio) {
+        return;
+      }
+
+      // If audio changed or controls not valid, reinitialize
+      if (audio !== currentAudio || !isControlsValid()) {
+        initializeAudioControls(audio);
+      }
+    };
+
+    /**
+     * Start initialization with continuous monitoring
      */
     const init = (): void => {
-      // Try to find audio immediately
-      if (findAudio()) {
-        return;
-      }
+      // Initial check
+      checkAndUpdateControls();
 
-      // If not found, wait for it to be added to DOM
-      console.log(`${LOG_PREFIX} Waiting for audio element...`);
-      const observer = new MutationObserver(() => {
-        if (findAudio()) {
-          observer.disconnect();
+      // Ensure document.body exists before observing
+      const targetNode = document.body || document.documentElement;
+
+      // Flag to ignore mutations caused by our own DOM changes
+      let isUpdating = false;
+
+      // Wrap checkAndUpdateControls to set flag
+      const safeCheckAndUpdate = (): void => {
+        if (isUpdating) return;
+        isUpdating = true;
+        try {
+          checkAndUpdateControls();
+        } finally {
+          // Reset flag after DOM has settled
+          setTimeout(() => {
+            isUpdating = false;
+          }, 50);
         }
+      };
+
+      // Keep observing for DOM changes (DailyDictation re-renders content)
+      const observer = new MutationObserver((mutations) => {
+        // Skip if we're currently updating (our own changes)
+        if (isUpdating) return;
+
+        // Skip mutations that only affect our controls
+        const isOurMutation = mutations.every(m => {
+          const target = m.target as Element;
+          return target.closest?.('.dd-speed-controls') !== null;
+        });
+        if (isOurMutation) return;
+
+        // Debounce: wait for DOM to settle
+        setTimeout(() => {
+          safeCheckAndUpdate();
+        }, 100);
       });
 
-      observer.observe(document.body, {
+      observer.observe(targetNode, {
         childList: true,
         subtree: true,
       });
